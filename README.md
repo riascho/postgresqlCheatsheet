@@ -343,4 +343,4 @@ Postgres stores all its data in a directory called `/var/lib/postgresql/data`
 | get OID of 'public' namespace (connect to database first) | `SELECT to_regnamespace('public')::oid;`                                      |
 | list all tables, indexes etc that live in a namespace     | `SELECT * FROM pg_class WHERE relnamespace = to_regnamespace('public')::oid;` |
 
-see [examples]('./pg_classes)
+see [examples]('./pg_classes.sql)
