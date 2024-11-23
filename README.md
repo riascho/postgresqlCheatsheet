@@ -8,7 +8,7 @@ Don't forget semi-colon `;` at the end of each psql command to run it!
 
 `CREATE DATABASE` or `CREATE TABLE` followed by `[name]`
 
-```postgres
+```sql
 CREATE TABLE cars (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
 	make VARCHAR(100) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE cars (
 `ALTER TABLE` followed by `[table_name]` and adding whatever needed (e.g. column)
 `ADD COLUMN` (needs column name and data type!, e.g. `INTEGER`)
 
-```postgres
+```sql
 ALTER TABLE table_name
 ADD COLUMN new_column_name column_type;
 ```
@@ -36,7 +36,7 @@ See [Bobby Tables - preventing SQL injection](https://bobby-tables.com/)
 
 ## Selecting and Filtering
 
-```postgres
+```sql
 SELECT country_of_birth, COUNT(*) FROM random_people GROUP BY country_of_birth HAVING COUNT(*) >= 40 ORDER BY country_of_birth;
 ```
 
@@ -50,7 +50,7 @@ SELECT country_of_birth, COUNT(*) FROM random_people GROUP BY country_of_birth H
 
 `ORDER BY` `[column name]` to sort the results by specified column in either `ASC`ending (default) or `DESC`ending order
 
-```postgres
+```sql
 SELECT * FROM random_people WHERE gender = 'Female' AND country_of_birth = 'Germany' OR country_of_birth = 'Austria' AND gender <> 'Male' AND date_of_birth BETWEEN DATE '2000-01-01' AND '2000-12-31' LIMIT 10 OFFSET 5;
 ```
 
@@ -62,14 +62,14 @@ SELECT * FROM random_people WHERE gender = 'Female' AND country_of_birth = 'Germ
 `LIMIT` specifies the maximum number of rows to return
 `OFFSET` specifies the number of rows to skip before starting to return rows
 
-```postgres
+```sql
 SELECT * FROM random_people WHERE gender NOT IN ('Female','Male');
 SELECT * FROM random_people WHERE country_of_birth IN ('Nigeria);
 ```
 
 `NOT` / `NOT IN` specifies an array of values to include / exclude
 
-```postgres
+```sql
 SELECT * FROM random_people WHERE email LIKE '%google.%';
 SELECT * FROM random_people WHERE first_name ='___';
 ```
@@ -78,7 +78,7 @@ SELECT * FROM random_people WHERE first_name ='___';
 `%` matches any sequence of characters
 `_` matches any single character
 
-```postgres
+```sql
 SELECT DISTINCT country_of_birth FROM random_people WHERE country_of_birth ILIKE 'n%';
 ```
 
@@ -137,7 +137,7 @@ SELECT NULLIF(10, 1);  -- Returns 10
 
 ## Type Casting
 
-```postgres
+```sql
 SELECT NOW()::DATE;
 SELECT NOW()::TIME with time zone;
 ```
@@ -148,13 +148,13 @@ converts one data type into another
 
 `INSERT INTO` table name (list column names) `VALUES` (list of values to insert in sequence of before mentioned columns)
 
-```postgres
+```sql
 INSERT INTO persons (first_name, last_name) VALUES ('Ria', 'Scholz');
 ```
 
 ## Conflict Handling
 
-```postgres
+```sql
 INSERT INTO random_people (id, first_name, last_name, gender, email, date_of_birth, country_of_birth)
 VALUES (2017, 'Russell', 'Ruddoch', 'Male', 'rrudoch7@hhs.gov.uk', DATE '1952-09-25', 'Norway')
 ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, first_name = EXCLUDED.first_name;
@@ -242,7 +242,7 @@ ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male
 
 `\copy` command and in () the actual query `TO` filepath (new filename.extension) `DELIMITER` and if `CSV HEADER` true or not.
 
-```postgres
+```sql
 \copy (SELECT * FROM persons LEFT JOIN cars ON persons.car_id = cars.id ORDER BY persons.id) TO '/Users/ria/Desktop/persons.csv' DELIMITER ',' CSV HEADER;
 ```
 
@@ -254,13 +254,13 @@ If table description has an id serial (or any other serialized column) it will h
 
 View current serial number `tablename_columnname_seq`:
 
-```postgres
+```sql
 SELECT * FROM persons_id_seq;
 ```
 
 Invoke function and increment this value:
 
-```postgres
+```sql
 SELECT nextval('persons_id_seq'::regclass)
 ```
 
@@ -268,7 +268,7 @@ SELECT nextval('persons_id_seq'::regclass)
 
 reseting the serial sequence:
 
-```postgres
+```sql
 ALTER SEQUENCE persons_id_seq RESTART WITH 1000;
 ```
 
@@ -284,13 +284,13 @@ SELECT setval('random_people_id_seq', (SELECT MAX(id) FROM random_people));
 
 View available extensions:
 
-```postgres
+```sql
 SELECT * FROM pg_available_extensions;
 ```
 
 Install an extension (in double quotes):
 
-```postgres
+```sql
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
