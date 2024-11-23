@@ -8,13 +8,23 @@ Don't forget semi-colon `;` at the end of each psql command to run it!
 
 `CREATE DATABASE` or `CREATE TABLE` followed by `[name]`
 
-```
+```postgres
 CREATE TABLE cars (
 	id BIGSERIAL NOT NULL PRIMARY KEY,
 	make VARCHAR(100) NOT NULL,
 	model VARCHAR(100) NOT NULL,
 	price NUMERIC(19, 2) NOT NULL
 );
+```
+
+## Updating a table
+
+`ALTER TABLE` followed by `[table_name]` and adding whatever needed (e.g. column)
+`ADD COLUMN` (needs column name and data type!, e.g. `INTEGER`)
+
+```postgres
+ALTER TABLE table_name
+ADD COLUMN new_column_name column_type;
 ```
 
 ## Deleting a database / table
@@ -26,7 +36,7 @@ See [Bobby Tables - preventing SQL injection](https://bobby-tables.com/)
 
 ## Selecting and Filtering
 
-```
+```postgres
 SELECT country_of_birth, COUNT(*) FROM random_people GROUP BY country_of_birth HAVING COUNT(*) >= 40 ORDER BY country_of_birth;
 ```
 
@@ -40,7 +50,7 @@ SELECT country_of_birth, COUNT(*) FROM random_people GROUP BY country_of_birth H
 
 `ORDER BY` `[column name]` to sort the results by specified column in either `ASC`ending (default) or `DESC`ending order
 
-```
+```postgres
 SELECT * FROM random_people WHERE gender = 'Female' AND country_of_birth = 'Germany' OR country_of_birth = 'Austria' AND gender <> 'Male' AND date_of_birth BETWEEN DATE '2000-01-01' AND '2000-12-31' LIMIT 10 OFFSET 5;
 ```
 
@@ -52,14 +62,14 @@ SELECT * FROM random_people WHERE gender = 'Female' AND country_of_birth = 'Germ
 `LIMIT` specifies the maximum number of rows to return
 `OFFSET` specifies the number of rows to skip before starting to return rows
 
-```
+```postgres
 SELECT * FROM random_people WHERE gender NOT IN ('Female','Male');
 SELECT * FROM random_people WHERE country_of_birth IN ('Nigeria);
 ```
 
 `NOT` / `NOT IN` specifies an array of values to include / exclude
 
-```
+```postgres
 SELECT * FROM random_people WHERE email LIKE '%google.%';
 SELECT * FROM random_people WHERE first_name ='___';
 ```
@@ -68,7 +78,7 @@ SELECT * FROM random_people WHERE first_name ='___';
 `%` matches any sequence of characters
 `_` matches any single character
 
-```
+```postgres
 SELECT DISTINCT country_of_birth FROM random_people WHERE country_of_birth ILIKE 'n%';
 ```
 
@@ -77,9 +87,9 @@ SELECT DISTINCT country_of_birth FROM random_people WHERE country_of_birth ILIKE
 
 ## Aggregation
 
-` MAX``MIN``AVG``SUM``(column_name) ` returns the maximum / minimum / average / sum value of a column
+`MAX`/`MIN`/`AVG`/`SUM` and `(column_name) ` returns the maximum / minimum / average / sum value of a column
 
-```
+```sql
 SELECT ROUND(AVG(price), 2) AS dicsounted FROM cars;
 ```
 
@@ -89,20 +99,20 @@ SELECT ROUND(AVG(price), 2) AS dicsounted FROM cars;
 
 `SELECT NOW()` returns the current date and time
 
-```
+```sql
 SELECT EXTRACT(YEAR FROM NOW());
 SELECT EXTRACT(MONTH FROM NOW());
 ```
 
 `EXTRACT(field FROM source)` retrieves a specific field (such as year, month, day) from a date or time expression.
 
-```
+```sql
 SELECT NOW() + INTERVAL '6 MONTH';
 ```
 
 `INTERVAL` adds or subtracts a specific amount of time from a date or time.
 
-```
+```sql
 test=# SELECT first_name, last_name, date_of_birth, AGE(NOW(), date_of_birth) AS age FROM person;
 ```
 
@@ -110,7 +120,7 @@ test=# SELECT first_name, last_name, date_of_birth, AGE(NOW(), date_of_birth) AS
 
 ## COALESCE & NULL
 
-```
+```sql
 SELECT COALESCE(NULL, NULL, 3, 4) AS number;
 SELECT COALESCE(email, 'N/A') FROM random_people;
 ```
@@ -118,7 +128,7 @@ SELECT COALESCE(email, 'N/A') FROM random_people;
 `COALESCE()` returns the first non-null expression
 second parameter will be used as a default value for NULL values
 
-```
+```sql
 SELECT NULLIF(10, 10); -- Returns NULL
 SELECT NULLIF(10, 1);  -- Returns 10
 ```
@@ -127,7 +137,7 @@ SELECT NULLIF(10, 1);  -- Returns 10
 
 ## Type Casting
 
-```
+```postgres
 SELECT NOW()::DATE;
 SELECT NOW()::TIME with time zone;
 ```
@@ -136,15 +146,15 @@ converts one data type into another
 
 ## Inserting into a Table
 
-`INSERT INTO` table name (list column names) `VALUES` (list of values to insert in sequence of beforementioned columns)
+`INSERT INTO` table name (list column names) `VALUES` (list of values to insert in sequence of before mentioned columns)
 
-```
+```postgres
 INSERT INTO persons (first_name, last_name) VALUES ('Ria', 'Scholz');
 ```
 
 ## Conflict Handling
 
-```
+```postgres
 INSERT INTO random_people (id, first_name, last_name, gender, email, date_of_birth, country_of_birth)
 VALUES (2017, 'Russell', 'Ruddoch', 'Male', 'rrudoch7@hhs.gov.uk', DATE '1952-09-25', 'Norway')
 ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, first_name = EXCLUDED.first_name;
@@ -161,7 +171,7 @@ ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, first_name = EXCLUDED.fir
 
 `UPDATE` which table name `SET` column name `=` new value `WHERE` which row in the table you want to change (identifier) `=` matching value. e.g. person with id 4 gets a car with id 1.
 
-```
+```sql
 UPDATE persons SET car_id = 1 WHERE id = 4;
 ```
 
@@ -169,7 +179,7 @@ UPDATE persons SET car_id = 1 WHERE id = 4;
 
 `DELETE FROM` which table name `WHERE` which row in the table you want to change (identifier) `=` matching value. e.g. deletes person with id 7 from the table persons.
 
-```
+```sql
 DELETE FROM persons WHERE id = 7;
 ```
 
@@ -179,7 +189,7 @@ Combines two tables with records that have foreign key values.
 
 `SELECT` the columns to display `FROM` which table `JOIN`ed with which other table `ON` which **table.columns** (foreign key) to match.
 
-```
+```sql
 SELECT persons.first_name, cars.make, cars.model, cars.price FROM persons JOIN cars ON persons.car_id = cars.id;
 ```
 
@@ -191,7 +201,7 @@ Combines two tables with all records, also ones without foreign key values.
 
 `SELECT` the columns to display `FROM` which table `LEFT JOIN`ed with which other table `ON` which **table.columns** (foreign key) to match. This will keep all records from table A even if there are no records for some of them in the table B.
 
-```
+```sql
 SELECT * FROM persons LEFT JOIN cars ON cars.id = persons.car_id;
 ```
 
@@ -199,7 +209,7 @@ SELECT * FROM persons LEFT JOIN cars ON cars.id = persons.car_id;
 
 If both tables have same column matches you can simply use `USING (column name)`
 
-```
+```sql
 SELECT * FROM persons LEFT JOIN cars USING (car_uid);
 ```
 
@@ -211,7 +221,7 @@ Constraints are rules applied to table columns that ensure data integrity, such 
 - unique
 - check
 
-```
+```sql
 ALTER TABLE persons ADD PRIMARY KEY (id);
 ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email);
 ALTER TABLE person ADD UNIQUE (email);
@@ -221,7 +231,7 @@ ALTER TABLE persons DROP CONSTRAINT person_pkey;
 `ALTER TABLE` is used to add, drop, or modify constraints on a table
 `ADD UNIQUE (column)` adds a unique constraint on the specified column
 
-```
+```sql
 ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female');
 ```
 
@@ -232,7 +242,7 @@ ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male
 
 `\copy` command and in () the actual query `TO` filepath (new filename.extension) `DELIMITER` and if `CSV HEADER` true or not.
 
-```
+```postgres
 \copy (SELECT * FROM persons LEFT JOIN cars ON persons.car_id = cars.id ORDER BY persons.id) TO '/Users/ria/Desktop/persons.csv' DELIMITER ',' CSV HEADER;
 ```
 
@@ -244,13 +254,13 @@ If table description has an id serial (or any other serialized column) it will h
 
 View current serial number `tablename_columnname_seq`:
 
-```
+```postgres
 SELECT * FROM persons_id_seq;
 ```
 
 Invoke function and increment this value:
 
-```
+```postgres
 SELECT nextval('persons_id_seq'::regclass)
 ```
 
@@ -258,13 +268,13 @@ SELECT nextval('persons_id_seq'::regclass)
 
 reseting the serial sequence:
 
-```
+```postgres
 ALTER SEQUENCE persons_id_seq RESTART WITH 1000;
 ```
 
 setting the sequence to a specific value
 
-```
+```sql
 SELECT setval('random_people_id_seq', (SELECT MAX(id) FROM random_people));
 ```
 
@@ -274,13 +284,13 @@ SELECT setval('random_people_id_seq', (SELECT MAX(id) FROM random_people));
 
 View available extensions:
 
-```
+```postgres
 SELECT * FROM pg_available_extensions;
 ```
 
 Install an extension (in double quotes):
 
-```
+```postgres
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
