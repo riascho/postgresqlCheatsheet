@@ -42,11 +42,16 @@ SELECT country_of_birth, COUNT(*) FROM random_people GROUP BY country_of_birth H
 
 `SELECT` column names separated by comma, or `*` for all, `FROM` `[table name]`
 
+`COUNT()` returns the number of rows that match a specified condition
+
 `COUNT(*) AS` `[new column name]` after a column will create a new column with the counts of the entries in that before mentioned column (only works together with `GROUP BY`)
 
 `GROUP BY` `[column name]` (when using `COUNT(*)` - needs to be same column)
 
-`HAVING` followed by a filter to be applied within the grouping
+`HAVING` followed by a filter to be applied within the grouping. `HAVING` always comes after `GROUP BY`, but before
+`ORDER BY` and `LIMIT`.
+
+> When we want to limit the results of a query based on values of the individual rows, use `WHERE`. When we want to limit the results of a query based on an aggregate property, use `HAVING`.
 
 `ORDER BY` `[column name]` to sort the results by specified column in either `ASC`ending (default) or `DESC`ending order
 
@@ -84,6 +89,26 @@ SELECT DISTINCT country_of_birth FROM random_people WHERE country_of_birth ILIKE
 
 `SELECT DISTINCT` selects unique values
 `ILIKE` is a case-insensitive pattern matching operator
+
+## Column Referencing
+
+Any column mentioned after a `SELECT` gets a reference number "behind the scenes" that can be used for further statements in order not to repeat ourselves. (Indexed from `1`)
+
+For example:
+
+```sql
+SELECT category, price, AVG(downloads)
+FROM fake_apps
+GROUP BY category, price;
+```
+
+Can be written:
+
+```sql
+SELECT category, price, AVG(downloads)
+FROM fake_apps
+GROUP BY 1, 2;
+```
 
 ## Aggregation
 
