@@ -110,6 +110,37 @@ FROM fake_apps
 GROUP BY 1, 2;
 ```
 
+## Case Statement
+
+The `CASE` statement is used to execute a sequence of statements based on a condition. It is similar to the `IF-THEN-ELSE` statement in other programming languages.
+
+```sql
+SELECT COUNT(*) AS total,
+	CASE
+		WHEN url LIKE '%github%' THEN 'Github'
+		WHEN url LIKE '%medium%' THEN 'Medium'
+		WHEN url LIKE '%nytimes%' THEN 'New York Times'
+		ELSE 'Other'
+	END AS 'Source'
+FROM hacker_news
+GROUP BY 2;
+```
+
+This example:
+
+- `SELECT`s two columns: a `total` (which is the count) and a `Source` column, which is a new column with our case logic
+- in `CASE` the `url` column contains `Github` we will add it as such to our new `Source` column
+- `ELSE` for all other rows that do not match the url criteria
+- `END AS` finishes the logic and renames the column to `Source`
+- `GROUP BY 2` groups the counts into Sources.
+
+| total | Source         |
+| ----- | -------------- |
+| 23    | Github         |
+| 12    | Medium         |
+| 13    | New York Times |
+| 3952  | Other          |
+
 ## Aggregation
 
 `MAX`/`MIN`/`AVG`/`SUM` and `(column_name) ` returns the maximum / minimum / average / sum value of a column
