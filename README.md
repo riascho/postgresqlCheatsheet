@@ -239,9 +239,11 @@ UPDATE persons SET car_id = 1 WHERE id = 4;
 DELETE FROM persons WHERE id = 7;
 ```
 
-## Inner Joins
+## INNER JOINS
 
-Combines two tables with records that have foreign key values.
+Combines two tables with records that have foreign key values. The `ON` keyword defines the matching column. The Inner Join Table returned will only contain matched values. Any values that didn't match will be dropped.
+
+<img src='https://content.codecademy.com/courses/learn-sql/multiple-tables/inner-join.gif' alt='animated illustration of INNER JOIN'>
 
 `SELECT` the columns to display `FROM` which table `JOIN`ed with which other table `ON` which **table.columns** (foreign key) to match.
 
@@ -251,9 +253,11 @@ SELECT persons.first_name, cars.make, cars.model, cars.price FROM persons JOIN c
 
 ![INNER JOIN](join.png)
 
-## Left Joins
+## LEFT JOINS
 
-Combines two tables with all records, also ones without foreign key values.
+Combines two tables with all records, also ones without foreign key values. All rows of the "left" table are kept. Any record that is not "matched" in the foreign table will have `null` values in the joined table.
+
+<img src='https://content.codecademy.com/courses/learn-sql/multiple-tables/left-join.gif' alt='animated illustration of LEFT JOIN'>
 
 `SELECT` the columns to display `FROM` which table `LEFT JOIN`ed with which other table `ON` which **table.columns** (foreign key) to match. This will keep all records from table A even if there are no records for some of them in the table B.
 
@@ -263,11 +267,70 @@ SELECT * FROM persons LEFT JOIN cars ON cars.id = persons.car_id;
 
 ![LEFT JOIN](leftJoin.png)
 
-If both tables have same column matches you can simply use `USING (column name)`
+> If both tables have same column matches you can simply use `USING (column name)`
 
 ```sql
 SELECT * FROM persons LEFT JOIN cars USING (car_uid);
 ```
+
+## CROSS JOINS
+
+Combine all rows of one table with all rows of another table. This is commonly used for when needing to compare each row of a table to a list of values.
+
+For example if we have a table of customer subscription records that include columns on `start_month` and `end_month`, we can use a reference table `months` to `CROSS JOIN` matching months the customer was subscribed in to get a total count of subscribed customers per month.
+
+![given tables customer subscriptions and months](subscriptions_months.png)
+
+```sql
+SELECT month,
+   COUNT(*) AS 'subscribers'
+FROM newspaper
+CROSS JOIN months
+WHERE start_month <= month
+   AND end_month >= month
+GROUP BY month
+ORDER BY 2 DESC;
+```
+
+This will produce the following result:
+
+![count of subscribers per month](cross_join_result.png)
+
+> `CROSS JOIN` does not require the `ON` statement because there is no columns to match on.
+
+## UNIONS
+
+To stack tables into one. SQL has strict rules for appending data:
+
+- Tables must have the same number of columns
+- The columns must have the same data types (schema)
+- The columns need to be in the same order
+
+```sql
+SELECT * FROM table1
+UNION
+SELECT * FROM table2;
+```
+
+## WITH AS / Common Table Expressions (CTE)
+
+The `WITH AS` clause stores the result of a query in a temporary table using an alias. It is also known as Common Table Expressions (CTEs) and allows for referencing this temporarily defined result sets with subsequent queries (like `SELECT`, `INSERT`, `UPDATE`, or `DELETE` statements). This can make complex queries easier to read and maintain by breaking them into simpler, reusable parts.
+
+```sql
+WITH recent_orders AS (
+	SELECT customer_id, order_date
+	FROM orders
+	WHERE order_date > '2023-01-01'
+)
+SELECT customers.name, recent_orders.order_date
+FROM customers
+JOIN recent_orders ON customers.id = recent_orders.customer_id;
+```
+
+- The `WITH` clause defines a CTE named `recent_orders` that selects orders placed after January 1, 2023.
+- The main query then joins the `customers` table with the `recent_orders` CTE to retrieve customer names and their recent order dates.
+
+> Important to note that the CTE will only have the columns that are specified in its `SELECT` statement.
 
 ## Constraints
 
