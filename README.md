@@ -4,6 +4,20 @@ Documentation: https://www.postgresql.org/docs/current/
 
 Don't forget semi-colon `;` at the end of each psql command to run it!
 
+## Data types
+
+most common data types in postgres
+
+| Data Type  | Representation                                    | Value       | Display  |
+| ---------- | ------------------------------------------------- | ----------- | -------- |
+| integer    | whole number                                      | 617         | 617      |
+| decimal    | floating-point number                             | 26.17345    | 26.17345 |
+| money      | fixed floating-point number with 2 decimal places | 6.17        | $6.17    |
+| boolean    | logic                                             | TRUE, FALSE | t, f     |
+| char(n)    | fixed-length string, **removes trailing spaces!** | '123 '      | '123'    |
+| varchar(n) | variable-length string                            | '123 '      | '123 '   |
+| text       | unlimited-length string                           | '123 '      | '123 '   |
+
 ## Creating a databse / table
 
 `CREATE DATABASE` or `CREATE TABLE` followed by `[name]`
