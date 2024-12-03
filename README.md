@@ -48,6 +48,78 @@ See [Bobby Tables - preventing SQL injection](https://bobby-tables.com/)
 
 `DROP DATABASE` or `DROP TABLE` followed by `[name]`
 
+## Constraints
+
+Constraints are rules applied to table columns that ensure data integrity, such as:
+
+- **PRIMARY KEY** - column data is always unique and not null
+- **Composite PRIMARY KEY** - `PRIMARY KEY (column1, column2)` uses two columns to define unique identifiers.
+- **FOREIGN KEY** - column data is reference to another table. This is done using the `REFERENCES` keyword.
+- **UNIQUE** - `ADD UNIQUE (column)` adds a unique constraint on the specified column
+- `ADD CONSTRAINT constraint_name` adds a new constraint and naming it
+- `CHECK (condition)` defines a condition that every row in the table must satisfy
+
+**Examples:**
+
+```sql
+CREATE TABLE books (
+  title varchar(100),
+  isbn varchar(50) PRIMARY KEY, --primary key
+  pages integer,
+  price money,
+  description varchar(256),
+  publisher varchar(100)
+);
+
+CREATE TABLE popular_books (
+  book_title VARCHAR(100),
+  author_name VARCHAR(50),
+  number_sold INTEGER,
+  number_previewed INTEGER,
+  PRIMARY KEY (book_title, author_name) --composite primary key
+);
+
+CREATE TABLE chapters (
+  id integer PRIMARY KEY,
+  number integer,
+  title varchar(50),
+  content varchar(1024),
+  book_isbn varchar(50) REFERENCES books(isbn) --foreign key
+);
+
+ALTER TABLE persons ADD PRIMARY KEY (id);
+
+ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email);
+
+ALTER TABLE person ADD UNIQUE (email);
+
+ALTER TABLE persons DROP CONSTRAINT person_pkey;
+
+ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female');
+
+
+```
+
+## Schema & Metadata
+
+> `information_schema.key_column_usage` is a built-in table with meta data information that can be queried for every database.
+> It will show each primary key (`pkey`) as well as foreign key (`fkey`) of a table.
+
+**Example**:
+
+```sql
+SELECT constraint_name, table_name, column_name
+FROM information_schema.key_column_usage;
+```
+
+Will show this:
+
+| constraint_name        | table_name | column_name |
+| ---------------------- | ---------- | ----------- |
+| book_pkey              | book       | isbn        |
+| chapter_pkey           | chapter    | id          |
+| chapter_book_isbn_fkey | chapter    | book_isbn   |
+
 ## Selecting and Filtering
 
 ```sql
@@ -345,31 +417,6 @@ JOIN recent_orders ON customers.id = recent_orders.customer_id;
 - The main query then joins the `customers` table with the `recent_orders` CTE to retrieve customer names and their recent order dates.
 
 > Important to note that the CTE will only have the columns that are specified in its `SELECT` statement.
-
-## Constraints
-
-Constraints are rules applied to table columns that ensure data integrity, such as:
-
-- primary key
-- unique
-- check
-
-```sql
-ALTER TABLE persons ADD PRIMARY KEY (id);
-ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email);
-ALTER TABLE person ADD UNIQUE (email);
-ALTER TABLE persons DROP CONSTRAINT person_pkey;
-```
-
-`ALTER TABLE` is used to add, drop, or modify constraints on a table
-`ADD UNIQUE (column)` adds a unique constraint on the specified column
-
-```sql
-ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female');
-```
-
-`ADD CONSTRAINT constraint_name` adds a new constraint and naming it
-`CHECK (condition)` defines a condition that every row in the table must satisfy
 
 ## Generate CSV
 
