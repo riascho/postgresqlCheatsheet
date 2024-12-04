@@ -35,10 +35,15 @@ CREATE TABLE cars (
 
 `ALTER TABLE` followed by `[table_name]` and adding whatever needed (e.g. column)
 `ADD COLUMN` (needs column name and data type!, e.g. `INTEGER`)
+or
+`DROP COLUMN` to delete a column
 
 ```sql
 ALTER TABLE table_name
 ADD COLUMN new_column_name column_type;
+
+ALTER TABLE table_name
+DROP COLUMN column_name_to_be_deleted;
 ```
 
 ## Deleting a database / table
@@ -89,13 +94,13 @@ CREATE TABLE chapters (
 
 ALTER TABLE persons ADD PRIMARY KEY (id);
 
-ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email);
-
-ALTER TABLE person ADD UNIQUE (email);
-
 ALTER TABLE persons DROP CONSTRAINT person_pkey;
 
-ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female');
+ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email); --custom named UNIQUE constraint
+
+ALTER TABLE person ADD UNIQUE (email); --default UNIQUE constraint
+
+ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female'); --custom constraint with custom check conditions
 
 
 ```
@@ -119,6 +124,71 @@ Will show this:
 | book_pkey              | book       | isbn        |
 | chapter_pkey           | chapter    | id          |
 | chapter_book_isbn_fkey | chapter    | book_isbn   |
+
+## Table Relationships
+
+Table relationships in SQL define how tables are connected to each other. The main types of relationships are:
+
+### One-to-One
+
+Each row in Table A is linked to one and only one row in Table B. This is implemented using a `PRIMARY KEY` in Table A and a `FOREIGN KEY` with a `UNIQUE` constraint in Table B.
+
+```sql
+CREATE TABLE person (
+  person_id SERIAL PRIMARY KEY,
+  name VARCHAR(100)
+);
+
+CREATE TABLE passport (
+  passport_id SERIAL PRIMARY KEY,
+  person_id INT UNIQUE REFERENCES person(person_id),
+  passport_number VARCHAR(50)
+);
+```
+
+### One-to-Many
+
+A row in Table A can be linked to multiple rows in Table B. This is implemented using a `PRIMARY KEY` in Table A and a `FOREIGN KEY` in Table B.
+
+```sql
+CREATE TABLE customer (
+  customer_id SERIAL PRIMARY KEY,
+  name VARCHAR(100)
+);
+
+CREATE TABLE order (
+  order_id SERIAL PRIMARY KEY,
+  customer_id INT REFERENCES customer(customer_id),
+  order_date DATE
+);
+```
+
+### Many-to-Many
+
+A many-to-many relationship can be broken into two one-to-many relationships.
+
+To implement a many-to-many relationship in a relational database, we would create a third cross-reference table also known as a join table. It will have these two constraints:
+
+- foreign keys referencing the primary keys of the two member tables.
+- a composite primary key made up of the two foreign keys.
+
+```sql
+CREATE TABLE student (
+  student_id SERIAL PRIMARY KEY,
+  name VARCHAR(100)
+);
+
+CREATE TABLE course (
+  course_id SERIAL PRIMARY KEY,
+  course_name VARCHAR(100)
+);
+
+CREATE TABLE enrollment ( --join table (cross-reference table)
+  student_id INT REFERENCES student(student_id), --foreign key to table A primary key
+  course_id INT REFERENCES course(course_id), --foreign key to table B primary key
+  PRIMARY KEY (student_id, course_id) --composite primary key
+);
+```
 
 ## Selecting and Filtering
 
