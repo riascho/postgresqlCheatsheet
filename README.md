@@ -530,6 +530,144 @@ SELECT setval('random_people_id_seq', (SELECT MAX(id) FROM random_people));
 
 `setval(sequence_name, value_to_set)`
 
+## Triggers
+
+A database trigger is procedural code that is automatically executed in response to certain events on a particular table or view in a database. Triggers are primarily used for maintaining the integrity of the information in the database.
+When a specific change occurs to a table or view, a trigger can be set to call a function automatically, ensuring that certain actions are consistently performed. This helps in enforcing rules and saving users from forgetting to perform necessary actions.
+However, triggers come with overhead and may sometimes need to be bypassed in specific situations. Proper design can minimize these exceptions.
+
+```sql
+CREATE TRIGGER <trigger_name>
+  BEFORE UPDATE ON <table_name>
+  FOR EACH ROW
+  EXECUTE PROCEDURE <function>;
+
+-- Example function
+CREATE OR REPLACE FUNCTION check_account_update() RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.active := 1;
+    RETURN NEW;
+  END;
+$$ LANGUAGE PLPGSQL;
+
+-- Example trigger
+CREATE TRIGGER check_update
+  BEFORE UPDATE ON accounts
+  FOR EACH ROW
+  EXECUTE PROCEDURE check_account_update(); --define function with parenthesis!
+```
+
+In this example, whenever an `UPDATE` statement is executed on the `accounts` table, the trigger will ensure that the `active` column of the modified rows is set to `1`. Triggers can be set for various events, including `UPDATE`, `INSERT`, `DELETE`, and `TRUNCATE`, allowing you to customize the behavior of your database tables based on different types of data modifications.
+
+> Newer versions of PostgreSQL may use `EXECUTE FUNCTION` rather than `EXECUTE PROCEDURE`. These are logically equivalent and both call a trigger function.
+
+```sql
+--Renaming a Trigger
+ALTER TRIGGER <old_trigger_name> ON <table_name>
+  RENAME TO <new_trigger_name>;
+
+--Deleting a Trigger
+DROP TRIGGER IF EXISTS <trigger_name> ON <table_name>;
+
+--Displaying Triggers
+SELECT * FROM information_schema.triggers;
+```
+
+- **BEFORE**
+
+  - Executes before the operation (INSERT, UPDATE, DELETE) is performed.
+  - Allows you to modify the row before it is committed to the database.
+  - Useful for validation, modification, or enforcing business rules.
+
+- **AFTER**
+
+  - Executes after the operation has been completed.
+  - Cannot modify the row being processed as the operation is already done.
+  - Ideal for logging, auditing, or triggering other actions based on the completed operation.
+
+```sql
+CREATE TRIGGER logging
+  AFTER UPDATE ON customers
+  FOR EACH ROW
+  EXECUTE FUNCTION log_customers_change();
+```
+
+- **FOR EACH ROW**
+
+  - The trigger fires and calls the function for every row impacted by the related query.
+  - Can have large impacts on efficiency and data integrity, especially with large datasets.
+  - _Example_: If a function tracks the number of modifications, deleting 10 records would increment the counter by 10.
+
+- **FOR EACH STATEMENT**
+
+  - The trigger calls the function once for each query, not for each record.
+  - More efficient for large datasets but can have logical differences.
+  - _Example_: If a function tracks the number of modifications, deleting 10 records would increment the counter by 1.
+
+```sql
+CREATE TRIGGER log_queries
+  AFTER UPDATE ON customers
+  FOR EACH STATEMENT
+  EXECUTE PROCEDURE statement_function();
+```
+
+- **WHEN Clause**
+
+  - the `WHEN` clause is used to specify conditions (boolean) that must be met for the trigger to execute.
+  - This allows for more granular control over when the trigger's function is called.
+
+  ```sql
+  CREATE TRIGGER insert_trigger_high
+    BEFORE INSERT ON clients
+    FOR EACH ROW
+    WHEN (NEW.total_spent >= 1000)
+    EXECUTE PROCEDURE high_spender();
+
+  --In this example, the trigger `update_check` will only execute the `check_account_update` function if the `balance` column is changed.
+  CREATE TRIGGER update_check
+    BEFORE UPDATE ON accounts
+    FOR EACH ROW
+    WHEN (OLD.balance IS DISTINCT FROM NEW.balance)
+    EXECUTE FUNCTION check_account_update();
+  ```
+
+- **NEW**
+
+  - Represents the new row data that will be inserted or updated in the table.
+  - It is available in `INSERT` and `UPDATE` triggers.
+
+- **OLD**
+
+  - Represents the old row data that is being updated or deleted.
+  - It is available in `UPDATE` and `DELETE` triggers.
+
+  ```sql
+  CREATE OR REPLACE FUNCTION log_account_update() RETURNS TRIGGER AS $$
+  BEGIN
+    IF OLD.balance IS DISTINCT FROM NEW.balance THEN
+      INSERT INTO account_log (account_id, action, old_balance, new_balance, timestamp)
+      VALUES (NEW.id, 'UPDATE', OLD.balance, NEW.balance, NOW());
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER log_update
+    AFTER UPDATE ON accounts
+    FOR EACH ROW
+    EXECUTE FUNCTION log_account_update();
+  ```
+
+> With the `WHEN` clause, you can use `NEW` and `OLD` to get records from the table before and after the query.
+> Logically, `INSERT` can not refer to `OLD` (nothing existed before the insert) and `DELETE` can not refer to `NEW` (nothing exists after the delete).
+> `NEW` and `OLD` referencing only works for `FOR EACH ROW` queries
+
+### Notes
+
+- Multiple triggers of the same kind can exist on the same table
+- If a statement causes multiple triggers to fire, they are triggered in alphabetical order (name of trigger)
+- since `SELECT` statements do not modify rows, no trigger can be set on a `SELECT` statement.
+
 # Extensions
 
 View available extensions:
