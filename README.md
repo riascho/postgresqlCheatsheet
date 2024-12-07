@@ -53,23 +53,22 @@ See [Bobby Tables - preventing SQL injection](https://bobby-tables.com/)
 
 `DROP DATABASE` or `DROP TABLE` followed by `[name]`
 
-## Constraints
+## Constraints & Data Integrity
 
-Constraints are rules applied to table columns that ensure data integrity, such as:
+Constraints are rules applied to table columns that ensure data integrity.
 
-- **PRIMARY KEY** - column data is always unique and not null
-- **Composite PRIMARY KEY** - `PRIMARY KEY (column1, column2)` uses two columns to define unique identifiers.
-- **FOREIGN KEY** - column data is reference to another table. This is done using the `REFERENCES` keyword.
-- **UNIQUE** - `ADD UNIQUE (column)` adds a unique constraint on the specified column
-- `ADD CONSTRAINT constraint_name` adds a new constraint and naming it
-- `CHECK (condition)` defines a condition that every row in the table must satisfy
+### Data Types
 
-**Examples:**
+Data Types are the "first line of defense". These rules aren't constraints but can help reject incorrect data from the database.
+
+### PRIMARY KEY
+
+A primary key can be a column or a combination of columns ("**Composite Primary Key**") that uniquely identify a row and are both `NOT NULL` and `UNIQUE`. A table can only have one single `PRIMARY KEY` as it will often be used in joins between tables. Having primary keys improves query performance and helps to enforce data integrity
 
 ```sql
 CREATE TABLE books (
   title varchar(100),
-  isbn varchar(50) PRIMARY KEY, --primary key
+  isbn varchar(50) PRIMARY KEY, --primary key as unique identifier column
   pages integer,
   price money,
   description varchar(256),
@@ -81,28 +80,92 @@ CREATE TABLE popular_books (
   author_name VARCHAR(50),
   number_sold INTEGER,
   number_previewed INTEGER,
-  PRIMARY KEY (book_title, author_name) --composite primary key
+  PRIMARY KEY (book_title, author_name) --composite primary key as constraint
 );
 
+ALTER TABLE persons ADD PRIMARY KEY (id); --turning a table column into a primary key
+```
+
+### FOREIGN KEY
+
+Foreign keys help to maintain "**referential integrity**" between two tables by validating the entry in one ("Parent Table") also appears in the other ("Child Table"). Meaning, postgres will reject any values to be entered that do not already exist in the parent table. This can be set explicitly.
+
+Referential integrity depends on `FOREIGN KEY` constraints. These constraints are created using the `REFERENCES` keyword.
+
+```sql
 CREATE TABLE chapters (
   id integer PRIMARY KEY,
   number integer,
   title varchar(50),
   content varchar(1024),
-  book_isbn varchar(50) REFERENCES books(isbn) --foreign key
+  book_isbn varchar(50) REFERENCES books(isbn) --foreign key as column
+  FOREIGN KEY (book_isbn) REFERENCES books(isbn) --foreign key as constraint
 );
 
-ALTER TABLE persons ADD PRIMARY KEY (id);
+ALTER TABLE talks
+  ADD FOREIGN KEY (speaker_id)
+  REFERENCES speakers (id)
+  ON DELETE CASCADE; --adds foreign key constraint with deletion cascade
+```
 
-ALTER TABLE persons DROP CONSTRAINT person_pkey;
+A foreign key constraint will prevent deleting or updating a row of a parent table that is referenced in child table. This can be explicitly set using the `ON DELETE`/`UPDATE RESTRICT` keywords.
 
-ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email); --custom named UNIQUE constraint
+```sql
+REFERENCES <parent_table> (<primary key column>) ON DELETE RESTRICT
 
-ALTER TABLE person ADD UNIQUE (email); --default UNIQUE constraint
+REFERENCES <parent_table> (<primary key column>) ON UPDATE RESTRICT`
+```
 
-ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female'); --custom constraint with custom check conditions
+Rather than preventing changes, the `CASCADE` clause can be used to explicitly enforce the changes to a child row when the parent row is deleted or updated.
 
+```sql
+REFERENCES <parent_table> (<primary key column>) ON DELETE CASCADE
 
+REFERENCES <parent_table> (<primary key column>) ON UPDATE CASCADE
+```
+
+### NOT NULL
+
+The `NOT NULL` constraint is used to reject incoming queries when the `NOT NULL` constrained column is missing a value.
+
+```sql
+CREATE TABLE persons (
+  id INT PRIMARY KEY,
+  name VARCHAR(20) NOT NULL,
+  email VARCHAR(15)
+);
+
+ALTER TABLE talks ALTER COLUMN speaker SET NOT NULL; --adds NOT NULL constraint to column speaker
+```
+
+### UNIQUE
+
+The `UNIQUE` constraint helps with defining unique values in a table. They also create an index which can improve query and join performance.
+
+A **jointly unique** constraint adds unique constraint on the combination of two columns ("multi-column constraint").
+
+```sql
+ALTER TABLE persons ADD UNIQUE (email); --adds UNIQUE constraint to column email
+
+ALTER TABLE random_people ADD CONSTRAINT unique_email UNIQUE (email); --adds custom named UNIQUE constraint to column email
+
+ALTER TABLE table_name ADD UNIQUE (column1, column2) --adds jointly UNIQUE constraint to two columns
+```
+
+### CHECK
+
+The `CHECK()` constraint gives more control over what specific rules to apply to a column. These constraints will reject a row if it fails the criteria defined. The condition defined allows to make comparisons between columns within the table, using logical operators like `AND`, `OR`, `IN` or `LIKE` that will evaluate to a boolean.
+
+```sql
+ALTER TABLE random_people ADD CONSTRAINT gender_constraint CHECK (gender = 'Male' OR gender = 'Female'); --custom constraint with check condition
+```
+
+### Deleting Constraints
+
+```sql
+ALTER TABLE persons DROP CONSTRAINT person_pkey; --deletes primary key constraint from table persons
+
+ALTER TABLE talks ALTER COLUMN speaker DROP NOT NULL; --deletes NOT NULL constraint from column speaker
 ```
 
 ## Schema & Metadata
@@ -363,6 +426,8 @@ converts one data type into another
 ```sql
 INSERT INTO persons (first_name, last_name) VALUES ('Ria', 'Scholz');
 ```
+
+> PostgreSQL will try to interpret incoming data as the data type the column has been defined as (type casting). This can be problematic for example when a column is type `INTEGER` but the value entered is a decimal. Postgres will then round the value upon insertion. Or if the column type was `VARCHAR` Postgres will cast the decimal value into a string.
 
 ## Conflict Handling
 
@@ -667,6 +732,16 @@ CREATE TRIGGER log_queries
 - Multiple triggers of the same kind can exist on the same table
 - If a statement causes multiple triggers to fire, they are triggered in alphabetical order (name of trigger)
 - since `SELECT` statements do not modify rows, no trigger can be set on a `SELECT` statement.
+
+## Functions
+
+### Common built-in functions
+
+- `date_part` - returns a portion of the date as an integer
+
+```sql
+date_part('year' ,'2020-08-01 00:00:00'::date); --returns 2020
+```
 
 # Extensions
 
