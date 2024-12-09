@@ -170,10 +170,14 @@ ALTER TABLE talks ALTER COLUMN speaker DROP NOT NULL; --deletes NOT NULL constra
 
 ## Schema & Metadata
 
+A **schema** is a container within a database that holds tables, views, functions, and other database objects. It helps organize and manage these objects, allowing for logical grouping and separation. Schemas can also help avoid name conflicts by allowing objects with the same name to exist in different schemas.
+
+A table is a database object within a schema that stores data in rows and columns. It is the primary structure for storing and organizing data in a relational database. Each table has a defined structure, including column names and data types.
+
+> Schemas organize tables, while tables store the actual data.
+
 > `information_schema.key_column_usage` is a built-in table with meta data information that can be queried for every database.
 > It will show each primary key (`pkey`) as well as foreign key (`fkey`) of a table.
-
-**Example**:
 
 ```sql
 SELECT constraint_name, table_name, column_name
@@ -741,6 +745,89 @@ CREATE TRIGGER log_queries
 
 ```sql
 date_part('year' ,'2020-08-01 00:00:00'::date); --returns 2020
+```
+
+# Permissions & Roles in postgres
+
+By default there will always be a `postgres` database and a `postgres` user in a PostgreSQL database server. This `superuser` user has the ability to create new databases, tables, users etc. A `superuser` bypasses all permission checks that other users face before being allowed to perform an action. `superuser` privileges are not restricted to a single user and can be passed along to any number of users in the DB. However, the general principle of "least privilege" should be applied, where every user is only given the minimum permissions required for their function. Other important principles should be kept in mind: Most user's privileges should be restricted. `superusers` should not be performing routine database tasks and specialized roles are created with only the permissions they require.
+
+`superuser` can create new roles. Roles can either be `login roles` or `group roles`. **Login** roles are used for most routine database activity. **Group** roles typically do not have the ability to login themselves, but can hold other roles as “members” and allow access to certain shared permissions.
+
+Some common roles:
+
+| Permission Name | Function                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| `SUPERUSER`     | role is superuser                                                         |
+| `NOSUPERUSER`   | role is not superuser                                                     |
+| `CREATEROLE`    | permission to create additional roles                                     |
+| `CREATEDB`      | permission to create databases                                            |
+| `LOGIN`         | permission to login (_Note:_ If not specified, the default is `NOLOGIN`!) |
+| `IN ROLE`       | List of existing roles that a role will be added to as a new member.      |
+
+> Sometimes `CREATE USER` is used on older versions of PostgreSQL, which is equivalent to `CREATE ROLE`, except that `CREATE USER` assumes `WITH LOGIN` while `CREATE ROLE` does not.
+
+Every table or schema in a PostgreSQL database has an owner that can set the permissions on their tables.
+A `superuser` or **table**/**schema owner** can `GRANT` and `REVOKE` permissions at the schema and table level. To use a schema and to interact with that table, a role must have a permission called `USAGE`. Without `USAGE` a role cannot access tables within that schema. Other schema level permissions include `CREATE` and `DROP`, which allow the grantee the ability to create or remove tables in that schema respectively. Additionally, the table owner must also grant `SELECT`, `UPDATE`, `DELETE`, `INSERT` etc. on a specific table to define how that role can interact with the table.
+
+**Default permissions** can be set that are independent on schema or table roles and can also be set at database level. These permissions will apply for all schemas or tables (created after the default permission was set). Any permissions that could otherwise be set with a `GRANT` statement can be applied to newly created objects with `ALTER DEFAULT PRIVILEGES`.
+
+> This feature is not widely adopted and for older PostgreSQL systems or other database servers permissions may still need to be set manually.
+
+**Group roles** are used to automatically inherit permissions to a number of roles that are members of the group. Groups can also be members of other group roles (nesting). This is a useful feature for maintaining databases with many users, but only a few “types” of users. Maintaining a DB with hundreds of users becomes simpler if only having a few permissions managed through just a few group roles.
+
+> For security reasons, PostgreSQL disallows the inheritance of certain powerful permissions such as `LOGIN`, `SUPERUSER`, `CREATEDB` and `CREATEROLE`.
+
+**Colum Level Security** is used to set permissions per column instead of table or schema wide with the `GRANT` statement and the respective columns in `()`.
+
+**Row Level Security (RLS)** is used to set permissions per row instead of table or schema wide. This is an additional layer of security. To access (or modify) information from a table with RLS, a row-specific condition must be met.
+For this, a **policy** needs to be created that defines the permissions type, roles that the policy applies to and specific conditions to check before permitting a user to carry out an action.
+After a policy has been created it can then be applied to the specific tables (enables RLS).
+
+```sql
+SELECT current_user; --check current user
+
+SELECT usename, --role name
+usecreatedb, --permission to create DB ?
+usesuper --superuser privileges?
+FROM pg_catalog.pg_roles; --table of all users in the database and their permissions
+
+SELECT grantor, grantee, --user
+table_schema, table_name, privilege_type
+FROM information_schema.table_privileges --table of operations a user may have permissions for
+WHERE grantee = 'user_name';
+
+SET ROLE <rolname>; --sets current user to other role (if user has permission to do so)
+
+CREATE ROLE <rolname> WITH <list of permissions>; --creates new role
+ALTER ROLE <rolname> WITH <permission_name>; --adds a permission to an existing role
+
+GRANT USAGE, CREATE ON SCHEMA <schema_name> TO <rolname>; --granting a role the permission to use a schema and create new tables in that schema
+GRANT SELECT, UPDATE ON <schema_name.table_name> TO <rolname>; --granting table specific permissions
+REVOKE UPDATE ON <schema_name.table_name> FROM <rolname>; --revoking a permission from a role
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA <schema_name> GRANT SELECT ON TABLES TO <rolname>; --allows role to select on all newly-created tables in schema immediately after another user has created them
+ALTER DEFAULT PRIVILEGES IN DATABASE <schema_name> GRANT SELECT ON TABLES TO <rolname>; --same privileges on database level
+
+SELECT * FROM information_schema.table_privileges; --displays default permissions
+
+CREATE ROLE <group_rolname> WITH NOLOGIN ROLE <list of rolnames to include in group>; --creates a group role including login members
+
+CREATE ROLE <group_rolname> WITH NOLOGIN;
+GRANT <group_rolname> TO <rolname>; --adding role to group role
+
+CREATE ROLE <rolname> WITH LOGIN IN ROLE <group_rolname>; --adds new role to existing group role upon creation
+
+GRANT SELECT (<list of column names>) ON <table_name> TO <rolname>; --grants column specific SELECT permission to role
+
+SELECT * FROM information_schema.column_privileges; --displays all column level permissions
+SELECT * FROM information_schema.row_privileges; --displays all row level permissions
+
+CREATE POLICY <policy_name> ON <table_name> FOR
+SELECT
+TO <rolname> USING (<column_name> = current_user) --example policy that grants select access to rows where current user is mentioned
+
+ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY; --applies policies defined for this table
+
 ```
 
 # Extensions
