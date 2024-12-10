@@ -904,3 +904,14 @@ Postgres stores all its data in a directory called `/var/lib/postgresql/data`
 | list all tables, indexes etc that live in a namespace     | `SELECT * FROM pg_class WHERE relnamespace = to_regnamespace('public')::oid;` |
 
 see [examples](./pg_classes.sql)
+
+# ACID Principles
+
+ACID is an acronym for good practices when working with database transactions that help to ensure that all data is complete, accurate and has integrity. Furthermore, these principles assist in recovering a database in case of system failure and allow for concurrent use of a database.
+
+ACID stands for:
+
+- **Atomicity**: All changes to data are performed as if they are a single operation. That is, all the changes are performed, or none of them are.
+- **Consistency**: Any transaction done has to follow the rules of the database to ensure data integrity.
+- **Isolation**: Every transaction is executed one at a time in isolation. The intermediate state of a transaction is invisible to other transactions. As a result, transactions that run concurrently appear to be serialized. Multiple transactions can still be performed at once but no two transactions can read or write from the same location at the same time.
+- **Durability**: After a transaction successfully completes, changes to data persist and are not undone, even in the event of a system failure. This could be achieved through many means, for example keeping change logs that are referenced whenever a database has to restart.
