@@ -915,3 +915,54 @@ ACID stands for:
 - **Consistency**: Any transaction done has to follow the rules of the database to ensure data integrity.
 - **Isolation**: Every transaction is executed one at a time in isolation. The intermediate state of a transaction is invisible to other transactions. As a result, transactions that run concurrently appear to be serialized. Multiple transactions can still be performed at once but no two transactions can read or write from the same location at the same time.
 - **Durability**: After a transaction successfully completes, changes to data persist and are not undone, even in the event of a system failure. This could be achieved through many means, for example keeping change logs that are referenced whenever a database has to restart.
+
+# Indexing
+
+An `index` is an organization of the data in a table to help with performance when searching and filtering records. By default it divides the possible matching records in half, then half again, then half again and so on until the specific match is found. This is known as a `Binary Tree` (`B-Tree`).
+Indexes are built on columns and therefore a table can have multiple indexes.
+
+## Multi-column indexes
+
+Two or more columns can be combined to create a search structure that is based on values found in all of the combined columns. The index is built in the specific order of columns listed at creation and that can have an impact on the efficiency of the search. Multi-column indexes can also be referred to as `Composite` or `Compound` Indexes.
+
+## Costs
+
+Every query that modifies or updates on an indexed table will have a higher runtime. This means that, while filtering in `SELECT` statements become faster, other statements like `INSERT`, `UPDATE` or `DELETE` become slower. On an indexed table, when a single record is modified or added, the server will have to modify every index that would be impacted by this change. Therefore, a good practice is to drop the index before inserting or updating a large amount of data and then re-adding the index to restructure the updated data set.
+
+Indexes also take up more space in the table, which will increase time when doing backups or migrations.
+
+Using indexes makes more sense on tables that need to be more searched than updated as well as when the searches or filtering is very specific (having to return only a few matches out of a big data set).
+
+## Querying in Postgres
+
+Every query is planned first (which algorithm to take), for example `Seq Scan` means the system is scanning every record to find the match. More efficient would be `Bitmap Index Scan` which is using an index to do the binary search. The planning takes some time and together with the execution time makes up the total time of the query.
+
+```sql
+-- no index on first_name
+EXPLAIN ANALYZE SELECT * FROM customers WHERE first_name = 'Indiana';
+-- Seq Scan on customers (cost=0.00..2614.00 rows=500 width=466) (actual time=0.016..10.136 rows=538 loops=1)
+-- Planning time: 0.271 ms
+-- Execution time: 10.178 ms
+
+-- with index on last_name
+EXPLAIN ANALYZE SELECT * FROM customers WHERE last_name = 'Jones';
+-- -> Bitmap Index Scan on customers_last_name_idx (cost=0.00..12.17 rows=500 width=0) (actual time=0.189..0.189 rows=1008 loops=1)
+-- Planning time: 0.066 ms
+-- Execution time: 0.953 ms
+```
+
+## Summary
+
+```sql
+SELECT * FROM pg_indexes WHERE tablename = <table_name>; --view for existing indexes on a table
+
+CREATE INDEX <index_name> ON <table_name>(<column_name>); --creates new index on table column, the naming convention for indexes is "<table_name>_<column>_idx"
+
+CREATE INDEX <index_name> ON <table_name>(<column_name>, <column_name>); --multi column index
+
+EXPLAIN ANALYZE VERBOSE SELECT * FROM <table_name>; --returns verbose information about the query instead of the query results
+
+DROP INDEX IF EXISTS <index_name>; --deletes an index
+
+SELECT pg_size_pretty (pg_total_relation_size(<table_name>)); --gets size of a table
+```
