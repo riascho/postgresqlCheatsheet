@@ -920,6 +920,7 @@ ACID stands for:
 
 An `index` is an organization of the data in a table to help with performance when searching and filtering records. By default it divides the possible matching records in half, then half again, then half again and so on until the specific match is found. This is known as a `Binary Tree` (`B-Tree`).
 Indexes are built on columns and therefore a table can have multiple indexes.
+Postgres automatically creates an index for **Primary Keys** and **Unique** constraints.
 
 ## Multi-column indexes
 
@@ -951,6 +952,14 @@ EXPLAIN ANALYZE SELECT * FROM customers WHERE last_name = 'Jones';
 -- Execution time: 0.953 ms
 ```
 
+## Partial Indexes
+
+A partial index allows for indexing on a subset of a table, allowing searches to be conducted on just this group of records in the table. It essentially like a filtered index. The filtering does not have to be for the same column that is part of the index.
+
+## Sequence of Indexes
+
+By default indexes are ordered **ASCENDING** and with **NULL** values last. This can be changed by specifying the order right after the column name in the index, with either `DESC` or `ASC` and `NULLS FIRST` or `NULLS LAST`.
+
 ## Summary
 
 ```sql
@@ -958,7 +967,11 @@ SELECT * FROM pg_indexes WHERE tablename = <table_name>; --view for existing ind
 
 CREATE INDEX <index_name> ON <table_name>(<column_name>); --creates new index on table column, the naming convention for indexes is "<table_name>_<column>_idx"
 
+CREATE INDEX <index_name> ON <table_name>(<column_name> DESC NULLS FIRST); --index with custom ordering
+
 CREATE INDEX <index_name> ON <table_name>(<column_name>, <column_name>); --multi column index
+
+CREATE INDEX <index_name> ON <table_name> (<column_name>) WHERE <column_name> LIKE 'some_value';  --partial index for subset of data
 
 EXPLAIN ANALYZE VERBOSE SELECT * FROM <table_name>; --returns verbose information about the query instead of the query results
 
