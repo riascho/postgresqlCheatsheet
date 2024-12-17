@@ -922,18 +922,6 @@ An `index` is an organization of the data in a table to help with performance wh
 Indexes are built on columns and therefore a table can have multiple indexes.
 Postgres automatically creates an index for **Primary Keys** and **Unique** constraints.
 
-## Multi-column indexes
-
-Two or more columns can be combined to create a search structure that is based on values found in all of the combined columns. The index is built in the specific order of columns listed at creation and that can have an impact on the efficiency of the search. Multi-column indexes can also be referred to as `Composite` or `Compound` Indexes.
-
-## Costs
-
-Every query that modifies or updates on an indexed table will have a higher runtime. This means that, while filtering in `SELECT` statements become faster, other statements like `INSERT`, `UPDATE` or `DELETE` become slower. On an indexed table, when a single record is modified or added, the server will have to modify every index that would be impacted by this change. Therefore, a good practice is to drop the index before inserting or updating a large amount of data and then re-adding the index to restructure the updated data set.
-
-Indexes also take up more space in the table, which will increase time when doing backups or migrations.
-
-Using indexes makes more sense on tables that need to be more searched than updated as well as when the searches or filtering is very specific (having to return only a few matches out of a big data set).
-
 ## Querying in Postgres
 
 Every query is planned first (which algorithm to take), for example `Seq Scan` means the system is scanning every record to find the match. More efficient would be `Bitmap Index Scan` which is using an index to do the binary search. The planning takes some time and together with the execution time makes up the total time of the query.
@@ -952,13 +940,87 @@ EXPLAIN ANALYZE SELECT * FROM customers WHERE last_name = 'Jones';
 -- Execution time: 0.953 ms
 ```
 
+### Seek vs Scan
+
+> **Terminology**: SQL Server uses `Seek` and `Scan`, PostgreSQL uses `Scan`, `Index Scan` and `Bitmap Heap Scan`
+
+A **scan** searches through every record in a database table/view to find the records being asked for.
+
+On the other hand, a **seek** uses an index to find the specific records being asked for by jumping to their location and either grabbing the data or, if it is a reference, using it to get the information. A seek can only be done when the database server has an organized way to search through the target table/view. This is done by having an index covering your search criteria.
+
+In general, the database server will use a seek or a scan based on the specific query and it makes its best guess of which way would be faster. This is part of the pre-processing that a server does before it actually runs any query you write. When searching for a limited subset of records, the server will likely use a seek for efficiency. However, if searching for a large portion of the table, a scan is more efficient as it examines all relevant records.
+
+A developer can control the server to use a seek or a scan by writing queries taking advantage of indexes or to start with the most limiting queries to encourage seek searches. If appropriate create/delete indexes to further improve the database.
+
+## Costs
+
+Every query that modifies or updates on an indexed table will have a higher runtime. This means that, while filtering in `SELECT` statements become faster, other statements like `INSERT`, `UPDATE` or `DELETE` become slower. On an indexed table, when a single record is modified or added, the server will have to modify every index that would be impacted by this change. Therefore, a good practice is to drop the index before inserting or updating a large amount of data and then re-adding the index to restructure the updated data set.
+
+Indexes also take up more space in the table, which will increase time when doing backups or migrations.
+
+Using indexes makes more sense on tables that need to be more searched than updated as well as when the searches or filtering is very specific (having to return only a few matches out of a big data set).
+
+## Multi-column indexes
+
+Two or more columns can be combined to create a search structure that is based on values found in all of the combined columns. The index is built in the specific order of columns listed at creation and that can have an impact on the efficiency of the search. Multi-column indexes can also be referred to as `Composite` or `Compound` Indexes.
+
+- A single multi-column index is faster (if ordered well) than the server combining indexes.
+- A multi-column index is less efficient than a single index in cases where a single index is needed.
+- You could create all of them (two single indexes and one multicolumn index), and then the server will try to use the best one in each case, but if they are all not used relatively often/equally then this is a misuse of indexes.
+
 ## Partial Indexes
 
 A partial index allows for indexing on a subset of a table, allowing searches to be conducted on just this group of records in the table. It essentially like a filtered index. The filtering does not have to be for the same column that is part of the index.
 
-## Sequence of Indexes
+## Ordered Indexes
 
 By default indexes are ordered **ASCENDING** and with **NULL** values last. This can be changed by specifying the order right after the column name in the index, with either `DESC` or `ASC` and `NULLS FIRST` or `NULLS LAST`.
+
+## Clustering
+
+**Clustered Indexes:**
+
+- A clustered index determines the physical order of data in a table.
+- In PostgreSQL, the primary key is often used as the clustered index.
+- Only one clustered index can be created per table because the data rows themselves can only be sorted in one order.
+- It improves the performance of queries that retrieve a range of values or need to access data in a sorted order.
+
+> Something to note that PostgreSQL does differently than other systems is that it does not maintain this order automatically. When inserting data into a table with a clustered index on other systems, those systems will place the new records and altered records in their correct location in the database order in memory. PostgreSQL keeps modified records where they are and adds new records to the end, regardless of sorting. If you want to maintain the order, you must run the `CLUSTER` command again on the index when there have been changes. This will “re-cluster” the index to put all of those new records in the correct place.
+
+> Because PostgreSQL does not automatically recluster on `INSERT`, `UPDATE` and `DELETE` statements, those statements might run faster than equivalent statements using a different system. The flip side of this coin though is that after time, the more your table is modified the less useful the cluster will be on your searches. Reclustering the table has a cost, so you will need to find a balance on when to recluster your table(s). There are tools that can be used to help you identify when this would be useful.
+
+**Unclustered Indexes:**
+
+- An unclustered index, also known as a non-clustered index, does not alter the physical order of the data in the table.
+- It creates a separate structure within the database that points to the actual data rows.
+- Multiple unclustered indexes can be created on a single table.
+- It is useful for improving the performance of queries that search for specific values or need to access data in a non-sorted order.
+
+> PostgreSQL defaults all indexes to non-clustered unless the index is specified to be clustered.
+
+## Indexes with Functions (Expressions)
+
+Indexes in PostgreSQL can be created using functions and expressions to enhance query performance and enforce constraints. This allows for more flexible and efficient indexing strategies.
+
+Functions and expressions in indexes allow you to create indexes on the result of a function or an expression applied to a column, rather than the raw column data itself. This can be particularly useful for case-insensitive searches, computed columns, or any other scenario where the indexed value is derived from the original column value.
+
+Using functions and expressions in indexes is useful when you need to:
+
+- Perform case-insensitive searches.
+- Index computed or derived values.
+- Enforce constraints on transformed data.
+
+### Example:
+
+Consider a scenario where you want to enforce a unique constraint on email addresses in a case-insensitive manner. You can create a unique index using the `LOWER()` function to achieve this:
+
+```sql
+CREATE UNIQUE INDEX unique_email_idx ON users (LOWER(email));
+
+CREATE INDEX orders_total_price_idx ON orders ((quantity * price_base)); --creates index on the sum of two columns
+```
+
+In this example, the `LOWER()` function is applied to the `email` column, ensuring that the index is case-insensitive. This means that `example@example.com` and `EXAMPLE@EXAMPLE.COM` will be considered the same, preventing duplicate entries with different cases.
 
 ## Summary
 
@@ -973,9 +1035,15 @@ CREATE INDEX <index_name> ON <table_name>(<column_name>, <column_name>); --multi
 
 CREATE INDEX <index_name> ON <table_name> (<column_name>) WHERE <column_name> LIKE 'some_value';  --partial index for subset of data
 
+CREATE UNIQUE INDEX <index_name> ON <table_name> (<EXP>(<column_name>)); --index with function applied on column
+
 EXPLAIN ANALYZE VERBOSE SELECT * FROM <table_name>; --returns verbose information about the query instead of the query results
 
 DROP INDEX IF EXISTS <index_name>; --deletes an index
 
 SELECT pg_size_pretty (pg_total_relation_size(<table_name>)); --gets size of a table
+
+CLUSTER <table_name> USING <index_name>; --cluster table with existing index
+CLUSTER <table_name>; --if index to be clustered on has already been established
+CLUSTER; --to cluster every table in database that has an identified index to use
 ```
