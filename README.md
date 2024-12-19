@@ -18,7 +18,7 @@ most common data types in postgres
 | varchar(n) | variable-length string                            | '123 '      | '123 '   |
 | text       | unlimited-length string                           | '123 '      | '123 '   |
 
-## Creating a databse / table
+## Creating a database / table
 
 `CREATE DATABASE` or `CREATE TABLE` followed by `[name]`
 
@@ -31,6 +31,14 @@ CREATE TABLE cars (
 );
 ```
 
+### Creating a table from another table (duplicating)
+
+```sql
+CREATE TABLE <new_table_name> AS
+  SELECT DISTINCT <old_table_column_name(s)> --use DISTINCT if you only want unique entries, otherwise will copy duplicates
+  FROM <old_table_name>;
+```
+
 ## Updating a table
 
 `ALTER TABLE` followed by `[table_name]` and adding whatever needed (e.g. column)
@@ -39,11 +47,12 @@ or
 `DROP COLUMN` to delete a column
 
 ```sql
-ALTER TABLE table_name
-ADD COLUMN new_column_name column_type;
+ALTER TABLE <table_name>
+ADD COLUMN <new_column_name> <column_type>;
 
-ALTER TABLE table_name
-DROP COLUMN column_name_to_be_deleted;
+ALTER TABLE <table_name>
+DROP COLUMN <column_name_to_be_deleted>
+DROP COLUMN <another_column_name_to_be_deleted>;
 ```
 
 ## Deleting a database / table
