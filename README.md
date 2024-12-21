@@ -39,6 +39,9 @@ CREATE TABLE <new_table_name> AS
   FROM <old_table_name>;
 ```
 
+This is helpful when needing to split out and merge data from a bigger table into a separate table.
+![Splitting Out Data from a Table](./create_table_as.png)
+
 ## Updating a table
 
 `ALTER TABLE` followed by `[table_name]` and adding whatever needed (e.g. column)
