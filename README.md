@@ -928,6 +928,87 @@ ACID stands for:
 - **Isolation**: Every transaction is executed one at a time in isolation. The intermediate state of a transaction is invisible to other transactions. As a result, transactions that run concurrently appear to be serialized. Multiple transactions can still be performed at once but no two transactions can read or write from the same location at the same time.
 - **Durability**: After a transaction successfully completes, changes to data persist and are not undone, even in the event of a system failure. This could be achieved through many means, for example keeping change logs that are referenced whenever a database has to restart.
 
+# Database Normalization
+
+Database normalization uses progressive `Normal Forms (NF)` to reduce data redundancy and improve data integrity. The numbers stand for the level of normalization.
+
+## 1NF (First Normal Form)
+
+- Makes data atomic (one value per cell)
+- Ensures each row is unique
+
+> 'atomic' means, a unit cannot be broken down further (like an atom)
+
+## 2NF (Second Normal Form)
+
+- Must be in 1NF
+- Removes partial dependencies (splitting tables into separate entities to distinguish relationships)
+
+> A `partial dependency` is when an attribute depends on part of the table’s primary key rather than the whole primary key.
+
+## 3NF (Third Normal Form)
+
+- Must be in 2NF
+- Eliminates transitive dependencies
+- Non-key attributes depend only on primary key, not other non-key attributes
+
+> A `transitive functional dependency` is when a non-prime attribute depends on another non-prime attribute rather than a primary key or prime attribute.
+
+```sql
+-- Example of progression from unnormalized to 3NF:
+
+-- Unnormalized
+CREATE TABLE books (
+    book_title text,
+    book_author text,
+    author_address text,
+    book_sales numeric
+);
+
+-- 3NF
+CREATE TABLE books (
+    book_id serial PRIMARY KEY,
+    author_id integer REFERENCES authors,
+    title text,
+    sales numeric
+);
+
+CREATE TABLE authors (
+    author_id serial PRIMARY KEY,
+    address_id integer REFERENCES addresses,
+    name text
+);
+
+CREATE TABLE addresses (
+    address_id serial PRIMARY KEY,
+    address text
+);
+```
+
+## Database Anomalies
+
+Database anomalies are problems that can occur in badly designed databases leading to data inconsistency. These anomalies are often resolved through proper database normalization. There are four main types:
+
+### Insert Anomaly
+
+Occurs when you cannot insert data because of missing related data. For example, if you can't add a new course to a school database until a student enrolls in it.
+
+### Delete Anomaly
+
+Happens when deleting one piece of data unintentionally removes other unrelated data. For example, removing a student from a class might delete the only record of that class existing.
+
+### Update Anomaly
+
+When updating one data value requires multiple updates in different places. If a teacher's phone number changes, having to update it in multiple records increases the chance of inconsistency.
+
+### Redundancy Anomaly
+
+When the same data is stored in multiple places, leading to:
+
+- Waste of storage space
+- Increased risk of data inconsistency
+- Higher maintenance effort
+
 # Indexing
 
 An `index` is an organization of the data in a table to help with performance when searching and filtering records. By default it divides the possible matching records in half, then half again, then half again and so on until the specific match is found. This is known as a `Binary Tree` (`B-Tree`).
