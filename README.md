@@ -1009,6 +1009,57 @@ When the same data is stored in multiple places, leading to:
 - Increased risk of data inconsistency
 - Higher maintenance effort
 
+# Database Maintenance
+
+The space that PostgreSQL uses on disk can grow in several ways and it's important to keep an eye on it. Apart from adding new data or tables there are some properties of the postgres data storage system that can cause an unexpected increase in disk usage.
+In general, keeping tables and indexes in the database small can ensure better query performance, more efficient disk utilization and lower database costs.
+
+Each row in a postgres table is stored in a file on the disk. With every `UPDATE` or `DELETE` query, the content is not actually deleted from disk but instead marked as "invalid" and a new row added for the updated content. These rows are called `dead tuples` and still occupy disk space potentially affecting performance.
+
+- `pg_total_relation_size` will return the size of the table and all its indexes in bytes. These values are often in the millions or billions and thus hard to read.
+- `pg_table_size` and `pg_indexes_size` return the size of the table’s data and table’s indexes in bytes. The sum of these two functions is equal to `pg_total_relation_size`
+- `pg_size_pretty` can be used with the functions above to format a number in bytes as KB, MB, or GB.
+- `VACUUM` can be used to clean dead tuples from disk or at least make them re-writable. One nice property about `VACUUM` is that it allows space to be reused. If tables are vacuumed frequently enough, the disk usage of a table will stay relatively steady because updates will never get “too far ahead” of the required space on the disk. Postgres has a feature called `autovacuum` enabled on most databases by default, that periodically checks for tables that have had a large number of inserted, updated or deleted tuples that could be vacuumed for performance.
+- `VACUUM ANALYZE` performs a `VACUUM` but also updates postgres' internal statistics and can help further improve query performance after a large `UPDATE`
+- `VACUUM FULL` is an aggressive operation can completely clear dead tuples from a table and return the space to disk by rewriting all data from a table into a new location in disk excluding dead tuples. This is essentially clearing all the space the table occupied. However, this operation is quite and heady and therefore slow and blocks the table from other operations. It should be used sparingly. The "plain" `VACUUM` is designed to be able to run in parallel with normal reading and writing of the table. The best strategy for maintaining a database is to make sure that `VACUUM` runs frequently and `autovacuum` is enabled. These measures will ensure that table sizes are relatively stable over time.
+- `pg_stat_all_tables` is a [system view](https://www.postgresql.org/docs/12/monitoring-stats.html#PG-STAT-ALL-TABLES-VIEW) that provides statistics about table access and updates, including information about dead tuples, vacuum operations, and row counts for all tables in the database. To query for specific tables use the `relname` column.
+- `TRUNCATE` is an operation that quickly removes all rows from a table and can be used to clear a table much faster without having to copy it (like a `VACUUM FULL` does). It simultaneously reclaims disk space immediately, rather than requiring a subsequent `VACUUM` operation. However, `TRUNCATE` also requires an exclusive lock while removing a table’s contents.
+
+### TRUNCATE vs DELETE
+
+`TRUNCATE` is an alternative to `DELETE` when you want to remove all rows from a table. Here are some key differences:
+
+- **Performance**: `TRUNCATE` is faster than `DELETE` because it doesn’t scan the table row by row.
+- **Disk Space**: `TRUNCATE` immediately reclaims disk space, while `DELETE` may require a `VACUUM` to reclaim space.
+- **Transaction**: `TRUNCATE` is not transactional in the same way as `DELETE`. It cannot be rolled back if not used within a transaction block.
+- **Triggers**: `TRUNCATE` does not fire `DELETE` triggers.
+
+Use `TRUNCATE` when you need to quickly clear a table and don’t need to log each row deletion.
+
+```sql
+--getting size of tables
+SELECT
+    pg_size_pretty(pg_table_size('table_name')) as tbl_size,
+    pg_size_pretty(pg_indexes_size('table_name')) as idx_size,
+    pg_size_pretty(pg_total_relation_size('table_name')) as total_size
+    pg_size_pretty(pg_total_relation_size('index_name')) as total_size --use relation to get size of specific index
+
+--getting size of index
+SELECT pg_size_pretty(pg_total_relation_size('index_name')) as idx_size;
+
+--cleaning tables
+VACUUM <table_name>
+VACUUM ANALYZE <table_name> --updates the pg_stat_all_tables
+VACUUM FULL <table_name>  --performs a full vacuum on table
+TRUNCATE <table_name> --deletes all rows without scanning and leaves no dead tuples
+
+--getting statistics for a table
+SELECT schemaname, relname, last_vacuum, last_autovacuum, last_analyze, n_dead_tup, n_live_tup
+  FROM pg_stat_all_tables
+  WHERE relname = '<table_name>';
+
+```
+
 # Indexing
 
 An `index` is an organization of the data in a table to help with performance when searching and filtering records. By default it divides the possible matching records in half, then half again, then half again and so on until the specific match is found. This is known as a `Binary Tree` (`B-Tree`).
