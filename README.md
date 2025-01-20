@@ -858,22 +858,28 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 # Important Keyboard Shortcut Commands
 
-| Shortcut             | Description                                             |
-| -------------------- | ------------------------------------------------------- |
-| `psql`               | start postgresql                                        |
-| `\q`                 | quit postgresql                                         |
-| `\l`                 | lists databases                                         |
-| `\c [database name]` | connect to databse                                      |
-| `\d`                 | describe databases (shows tables)                       |
-| `\d [table name]`    | describes specific table                                |
-| `\dt`                | describes tables in current database                    |
-| `\d+ [table name]`   | describes table with metadata                           |
-| `\df`                | list of installed function                              |
-| `CTRL`+`L`           | clear screen                                            |
-| `\x`                 | toggle expanded display (vertical alignment per record) |
-| `\i [FILE PATH]`     | execute a sql file (queries)                            |
-| `\s`                 | show query history                                      |
-| `\s [FILE PATH]`     | save query history to a file                            |
+| Shortcut                      | Description                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `psql`                        | start postgresql connection                                                                                         |
+| `-h` or `--host=HOSTNAME`     | the database server host or socket directory to connect with (the default is local socket)                          |
+| `-p` or `--port=PORT`         | the database server port to connect to (the default is `5432`)                                                      |
+| `-U` or `--username=USERNAME` | the database username to connect with (the default is `your_username`)                                              |
+| `-w` or `--no-password`       | never prompt for password, if a password is required but not provided, the connection will fail                     |
+| `-W` or `--password`          | force password prompt, which should happen automatically (will always ask for password even if not strictly needed) |
+| `\conninfo`                   | get info about current connection                                                                                   |
+| `\q`                          | quit postgresql                                                                                                     |
+| `\l`                          | lists databases                                                                                                     |
+| `\c [database name]`          | connect to database                                                                                                 |
+| `\d`                          | describe databases (shows tables)                                                                                   |
+| `\d [table name]`             | describes specific table                                                                                            |
+| `\dt`                         | describes tables in current database                                                                                |
+| `\d+ [table name]`            | describes table with metadata                                                                                       |
+| `\df`                         | list of installed function                                                                                          |
+| `CTRL`+`L`                    | clear screen                                                                                                        |
+| `\x`                          | toggle expanded display (vertical alignment per record)                                                             |
+| `\i [FILE PATH]`              | execute a sql file (queries)                                                                                        |
+| `\s`                          | show query history                                                                                                  |
+| `\s [FILE PATH]`              | save query history to a file                                                                                        |
 
 # Understanding postgres structure
 
