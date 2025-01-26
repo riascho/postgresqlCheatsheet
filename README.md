@@ -827,6 +827,8 @@ CREATE ROLE <group_rolname> WITH NOLOGIN ROLE <list of rolnames to include in gr
 CREATE ROLE <group_rolname> WITH NOLOGIN;
 GRANT <group_rolname> TO <rolname>; --adding role to group role
 
+CREATE ROLE <role_name> WITH LOGIN PASSWORD '<password>'; --creates user without superuser attribute
+
 CREATE ROLE <rolname> WITH LOGIN IN ROLE <group_rolname>; --adds new role to existing group role upon creation
 
 GRANT SELECT (<list of column names>) ON <table_name> TO <rolname>; --grants column specific SELECT permission to role
@@ -861,20 +863,24 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 | Shortcut                      | Description                                                                                                         |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `psql`                        | start postgresql connection                                                                                         |
+| `psql=#`                      | indicates postgresql connection as super user                                                                       |
+| `psql=>`                      | indicates postgresql connection as non-super user                                                                   |
 | `-h` or `--host=HOSTNAME`     | the database server host or socket directory to connect with (the default is local socket)                          |
 | `-p` or `--port=PORT`         | the database server port to connect to (the default is `5432`)                                                      |
 | `-U` or `--username=USERNAME` | the database username to connect with (the default is `your_username`)                                              |
 | `-w` or `--no-password`       | never prompt for password, if a password is required but not provided, the connection will fail                     |
 | `-W` or `--password`          | force password prompt, which should happen automatically (will always ask for password even if not strictly needed) |
 | `\conninfo`                   | get info about current connection                                                                                   |
-| `\q`                          | quit postgresql                                                                                                     |
-| `\l`                          | lists databases                                                                                                     |
+| `\q`                          | quit postgresql connection                                                                                          |
+| `\l` or `\list`               | lists databases                                                                                                     |
 | `\c [database name]`          | connect to database                                                                                                 |
+| `\c - [username]`             | connect to database with different user                                                                             |
 | `\d`                          | describe databases (shows tables)                                                                                   |
 | `\d [table name]`             | describes specific table                                                                                            |
 | `\dt`                         | describes tables in current database                                                                                |
 | `\d+ [table name]`            | describes table with metadata                                                                                       |
 | `\df`                         | list of installed function                                                                                          |
+| `\du`                         | list of all roles                                                                                                   |
 | `CTRL`+`L`                    | clear screen                                                                                                        |
 | `\x`                          | toggle expanded display (vertical alignment per record)                                                             |
 | `\i [FILE PATH]`              | execute a sql file (queries)                                                                                        |
