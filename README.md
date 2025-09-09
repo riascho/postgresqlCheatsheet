@@ -1203,3 +1203,151 @@ CLUSTER <table_name> USING <index_name>; --cluster table with existing index
 CLUSTER <table_name>; --if index to be clustered on has already been established
 CLUSTER; --to cluster every table in database that has an identified index to use
 ```
+
+# Data Security
+
+## Role-Based Access Control
+
+RBAC is a way of managing permissions using roles.
+
+### Roles
+
+A `role` serves as a layer between `permissions` and `users`. Rather than permissions being granted directly to users, permissions are granted to roles and the users are assigned roles as appropriate (users can have more than one role).
+
+There are 3 types of roles:
+
+1. `Permissions` - will determine privileges based on tasks, such as reading and writing to a given table.
+2. `Groups` - will be collections of permissions and represent a group of users.
+3. `Users` - represent specific people or applications and join a group of users.
+
+### The Principle of Least Priviledge
+
+The principle of least priviledge says that users should have only the permissions necessary to accomplish their tasks, and no more. This also goes hand-in-hand with _default-deny schemas_, where privileges are denied by default and must be explicitly granted to be used.
+
+### RBAC Design
+
+To come up with which roles to create, you first need to identify the existing users and groups of users that exist.
+Then you need to think about what these users should and shouldn't be allowed to do - permissions (and to which resources).
+Roles should be based on tasks, jobs or groups of people but not solely on specific permissions.
+
+## Authentication and Authorization in Postgres
+
+### Host-Based Authentication
+
+- in postgres `pg_hba.conf` configures host-based authentication
+- it specifies rules for how postgres should handle different connections
+- rules can apply narrowly or broadly, depending on how precise the parameters are
+- to find the file run `SHOW hba_file;` in `psql` to get the path
+- rule format:
+
+```
+connection_type  db  user  address  auth_method  [auth_options]
+```
+
+- `connection_type` - matches external connections (`hostssl` using SSL or `host` for connections that do or don't)
+- `db` - database. The keyword `all` can be used to match all databases.
+- `user` - user or group. Using a prefix `+` matches users who are members of this group, rather than the group itself. If creating a rule for a specific user, omit the `+`. The keyword `all` can be used to match all users.
+- `address` - e.g. `samenet`, a shorthand for connections on the same subnet as the server. Specific IP addresses can be put here as well. The keyword `all` can be used to match any address.
+- `auth_method` - e.g. `scram-sha-256`, There are other options, including `reject`, which unconditionally rejects connections matching the rule.
+
+e.g. 3 rules:
+
+```postgres
+host db_employees +g_hr samenet scram-sha-256
+hostssl all u_owner 104.20.25.250 scram-sha-256
+host all all all reject -- default-deny rule
+```
+
+- The last one is a _default-deny_ rule, that ensures that all external connections that were not specifically allowed are blocked. It matches all types of connections, for all databases, users and addresses and rejects them.
+
+### Creating and Granting Rules in Postgres
+
+- Create a new role:
+
+```postgres
+CREATE ROLE role_name [SUPERUSER/NOSUPERUSER] [WITH LOGIN];
+```
+
+- Granting permissions on a specific table:
+
+```postgres
+GRANT permission ON table TO role;
+
+GRANT SELECT ON table TO role; -- specific permission (only selecting)
+```
+
+- Granting role permissions to another role (extension)
+
+```postgres
+GRANT role TO other_role;
+```
+
+- Revoking a permission:
+
+```postgres
+REVOKE ALL ON table FROM PUBLIC; -- default-deny behaviour
+```
+
+- viewing existing roles & permissions:
+
+```postgres
+\du -- shows roles
+\z [table]-- shows permissions per table (or all)
+```
+
+**example output:**
+
+```postgres
+ Schema | Name | Type | Access privileges | Column privileges | Policies
+--------+------+------+-------------------+-------------------+----------
+ public | students | table | admin=arwdDxtm/maria   +         |          |
+        |          |       | p_students_read=r/maria          |          |
+ public | teachers | table | admin=arwdDxtm/maria   +         |          |
+        |          |       | p_teachers_write=arwd/maria      |          |
+(2 rows)
+```
+
+- `admin` role has all privileges (`arwdDxtm`) on all tables, granted by `maria`
+- `p_students_read` role has only read (`SELECT`) privilege on the students table
+- `p_teachers_write` role has `SELECT`, `INSERT`, `UPDATE` and `DELETE` privileges on the teachers table
+
+**privilege letters explained:**
+
+```
+a = INSERT
+r = SELECT
+w = UPDATE
+d = DELETE
+D = TRUNCATE
+x = REFERENCES
+t = TRIGGER
+m = UPDATE/REFERENCES on columns
+```
+
+- view users and their group roles:
+
+```postgres
+SELECT rolname, pg_get_userbyid(member)
+FROM pg_auth_members
+JOIN pg_roles ON pg_roles.oid = pg_auth_members.roleid;
+```
+
+### Server Configuration
+
+- the configuration file `postgresql.conf` in postgres is used to enforce secure authentication
+- to find the file run `SHOW config_file;` in `psql` to get the path
+
+format:
+
+```postgres
+# some_other_configuration = some_values
+listen_addresses = 'localhost, 104.20.25.250'
+port = 5432
+ssl = off
+```
+
+- `listen addresses` (string) - control what IP addresses are allowed to connect to the server. Setting this to `*` allows connections from any address to try and authenticate (not recommended). Supports `CIDR notation` and can have multiple entries separated by commas.
+- `port` - that postgres server listens on. Usually between `49152` and `65535` as not reserved by any other software. By default, Postgres uses port `5432` or `5433`. However, for security, it is common to change the port to a higher, less common number. This makes it harder for automated tools to find the database.
+- `ssl` - determines whether or not the server will support SSL connections. The server will also need to be provided with appropriate certificate and key.
+
+- There is also other security measures for databases, such as the postgres packages `pg_crypto` for stronger encryption and hashing, or `pgAudit` for enhanced logging and autiting capabilities
